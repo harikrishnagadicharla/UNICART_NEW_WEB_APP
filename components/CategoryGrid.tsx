@@ -1,0 +1,134 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import { Laptop, Shirt, Home, Dumbbell, Sparkles, BookOpen, LucideIcon } from "lucide-react"
+
+interface Category {
+  id: string
+  name: string
+  slug: string
+  description?: string | null
+  image?: string | null
+  icon?: string | null
+  productCount: number
+}
+
+// Icon mapping - maps icon string from database to Lucide icon component
+const iconMap: Record<string, LucideIcon> = {
+  '📱': Laptop,
+  '👕': Shirt,
+  '🏠': Home,
+  '⚽': Dumbbell,
+  '💄': Sparkles,
+  '📚': BookOpen,
+}
+
+// Color classes array for consistent styling
+const colorClasses = [
+  "bg-blue-100 text-blue-600",
+  "bg-pink-100 text-pink-600",
+  "bg-green-100 text-green-600",
+  "bg-orange-100 text-orange-600",
+  "bg-purple-100 text-purple-600",
+  "bg-yellow-100 text-yellow-600",
+]
+
+export default function CategoryGrid() {
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const response = await fetch('/api/categories')
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch categories')
+        }
+
+        const data = await response.json()
+        
+        if (data.success && data.categories) {
+          setCategories(data.categories)
+        }
+      } catch (err) {
+        console.error('Error fetching categories:', err)
+        // Silently fail - don't show error in CategoryGrid
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCategories()
+  }, [])
+
+  const getIcon = (iconString: string | null | undefined): LucideIcon => {
+    if (iconString && iconMap[iconString]) {
+      return iconMap[iconString]
+    }
+    return Laptop // Default icon
+  }
+
+  const getColorClass = (index: number): string => {
+    return colorClasses[index % colorClasses.length]
+  }
+
+  if (loading) {
+    return (
+      <section className="w-full py-16 md:py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Shop by Category
+            </h2>
+            <p className="text-gray-600 text-lg">
+              Explore our wide range of products
+            </p>
+          </div>
+          <div className="text-center text-gray-600">Loading categories...</div>
+        </div>
+      </section>
+    )
+  }
+
+  if (categories.length === 0) {
+    return null // Don't show empty category grid
+  }
+
+  return (
+    <section className="w-full py-16 md:py-20 bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            Shop by Category
+          </h2>
+          <p className="text-gray-600 text-lg">
+            Explore our wide range of products
+          </p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 md:gap-8">
+          {categories.map((category, index) => {
+            const Icon = getIcon(category.icon)
+            const colorClass = getColorClass(index)
+            
+            return (
+              <Link
+                key={category.id}
+                href={`/categories/${category.slug}`}
+                className="flex flex-col items-center p-6 rounded-xl border-2 border-gray-100 hover:border-blue-300 hover:shadow-lg transition-all cursor-pointer group"
+              >
+                <div className={`${colorClass} p-4 rounded-full mb-4 group-hover:scale-110 transition-transform`}>
+                  <Icon className="h-8 w-8" />
+                </div>
+                <h3 className="text-base font-semibold text-gray-900 text-center">
+                  {category.name}
+                </h3>
+              </Link>
+            )
+          })}
+        </div>
+      </div>
+    </section>
+  )
+}
